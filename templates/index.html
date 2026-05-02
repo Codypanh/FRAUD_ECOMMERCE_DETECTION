@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FDS - Fraud Detection System</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #f4f7fe;
+            --bg-sidebar: #111c44;
+            --color-primary: #4318ff;
+            --text-main: #2b3674;
+            --text-muted: #a3aed1;
+            --card-bg: #ffffff;
+        }
+
+        body { background-color: var(--bg-body); font-family: 'DM Sans', sans-serif; color: var(--text-main); overflow-x: hidden; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            position: fixed;
+            height: 100vh;
+            padding: 30px 20px;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .sidebar-brand { color: #fff; font-weight: 700; font-size: 24px; margin-bottom: 40px; display: flex; align-items: center;}
+        .sidebar-brand i { color: var(--color-primary); font-size: 28px; margin-right: 10px; }
+        
+        .filter-group { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .filter-label { color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: block; }
+        .form-select-dark { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 10px; font-size: 14px; }
+        .form-select-dark:focus { background-color: rgba(255,255,255,0.1); color: #fff; border-color: var(--color-primary); box-shadow: none; }
+        .form-select-dark option { background-color: var(--bg-sidebar); }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { margin-left: 280px; padding: 30px 40px; transition: all 0.3s; }
+
+        /* --- UI COMPONENTS --- */
+        .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .top-header h2 { font-weight: 700; font-size: 32px; margin: 0; }
+        
+        .custom-card { background: var(--card-bg); border-radius: 20px; border: none; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); height: 100%; }
+        .stat-value { font-size: 36px; font-weight: 700; color: var(--text-main); }
+        .icon-box { width: 56px; height: 56px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; }
+        .bg-icon-primary { background: #e9e3ff; color: var(--color-primary); }
+        .bg-icon-danger { background: #fee2e2; color: #ef4444; }
+
+        .table-container { max-height: 500px; overflow-y: auto; }
+        .badge-safe { background-color: #d1fae5; color: #059669; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 12px; }
+        .badge-fraud { background-color: #fee2e2; color: #dc3545; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 12px; }
+        .fraud-row { background-color: #fff5f5 !important; }
+
+        #loader { display: none; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <i class="bi bi-shield-fill-check"></i> FDS Filter
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-group">
+                <label class="filter-label">Trạng thái rủi ro</label>
+                <select id="filterStatus" class="form-select form-select-dark">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="CẢNH BÁO">⚠️ Chỉ Cảnh Báo</option>
+                    <option value="AN TOÀN">✅ Chỉ An Toàn</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Danh mục (Category)</label>
+                <select id="filterCategory" class="form-select form-select-dark">
+                    <option value="all">Tất cả danh mục</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Khung giờ (Hour)</label>
+                <select id="filterHour" class="form-select form-select-dark">
+                    <option value="all">Mọi khung giờ</option>
+                    <option value="night">Nửa đêm (00h - 06h)</option>
+                    <option value="day">Ban ngày (07h - 23h)</option>
+                </select>
+            </div>
+
+            <button onclick="window.location.reload()" class="btn btn-link text-muted p-0 mt-2 small text-decoration-none">
+                <i class="bi bi-arrow-counterclockwise"></i> Làm mới toàn bộ
+            </button>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        
+        <div class="top-header">
+            <div>
+                <p class="text-muted mb-0" style="font-weight: 500;">FDS Admin / Dashboard</p>
+                <h2>Trung tâm giám sát rủi ro</h2>
+            </div>
+            <div class="user-profile bg-white px-3 py-2 rounded-pill shadow-sm d-flex align-items-center">
+                <i class="bi bi-bell me-3"></i>
+                <img src="https://ui-avatars.com/api/?name=Admin&background=4318ff&color=fff" width="35" height="35" class="rounded-circle">
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-4">
+                <div class="custom-card">
+                    <h5 class="fw-bold mb-4">Tải Lên Dữ Liệu</h5>
+                    <form action="/predict" method="post" enctype="multipart/form-data" onsubmit="showLoader()">
+                        <div class="mb-3">
+                            <input type="file" name="file" class="form-control" accept=".xlsx, .xls, .csv" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary bg-primary border-0 w-100 py-2 fw-bold rounded-3" id="btnSubmit">
+                            <i class="bi bi-cpu me-2"></i> Chạy Phân Tích AI
+                        </button>
+                    </form>
+                    <div id="loader" class="text-center mt-3">
+                        <div class="spinner-border text-primary spinner-border-sm"></div>
+                        <span class="small ms-2">Đang xử lý dữ liệu lớn...</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if tables %}
+            <div class="col-lg-4">
+                <div class="custom-card d-flex align-items-center">
+                    <div class="icon-box bg-icon-primary me-4"><i class="bi bi-database-check"></i></div>
+                    <div><p class="text-muted small mb-0">Tổng giao dịch</p><p class="stat-value mb-0">{{ total_trans }}</p></div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="custom-card d-flex align-items-center">
+                    <div class="icon-box bg-icon-danger me-4"><i class="bi bi-shield-exclamation"></i></div>
+                    <div><p class="text-muted small mb-0">Phát hiện rủi ro</p><p class="stat-value text-danger mb-0">{{ fraud_count }}</p></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if tables %}
+        <div class="row g-4 mb-4">
+            <div class="col-lg-7"><div class="custom-card"><div id="chart_category"></div></div></div>
+            <div class="col-lg-5"><div class="custom-card"><div id="chart_pie"></div></div></div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="custom-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold m-0">Chi Tiết Phân Tích (Explainable AI)</h5>
+                        <div class="small text-muted" id="rowCountDisplay">Đang hiển thị toàn bộ</div>
+                    </div>
+                    <div class="table-responsive table-container">
+                        {{ tables | safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showLoader() {
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('btnSubmit').disabled = true;
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const table = document.querySelector('.table');
+            if (!table) return;
+
+            // 1. STYLE TABLE & BADGES
+            table.classList.add('table-borderless');
+            const rows = table.querySelectorAll('tbody tr');
+            const categories = new Set();
+
+            rows.forEach(row => {
+                const category = row.cells[1].innerText;
+                categories.add(category);
+
+                if (row.textContent.includes("CẢNH BÁO")) {
+                    row.classList.add('fraud-row');
+                    row.innerHTML = row.innerHTML.replace('⚠️ CẢNH BÁO', '<span class="badge-fraud">⚠️ CẢNH BÁO</span>');
+                } else if (row.textContent.includes("AN TOÀN")) {
+                    row.innerHTML = row.innerHTML.replace('✅ AN TOÀN', '<span class="badge-safe">✅ AN TOÀN</span>');
+                }
+            });
+
+            // 2. POPULATE CATEGORY FILTER
+            const catFilter = document.getElementById('filterCategory');
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                catFilter.appendChild(option);
+            });
+
+            // 3. FILTER LOGIC
+            const statusFilter = document.getElementById('filterStatus');
+            const hourFilter = document.getElementById('filterHour');
+
+            function filterData() {
+                let visibleCount = 0;
+                rows.forEach(row => {
+                    const rowStatus = row.textContent.includes("CẢNH BÁO") ? "CẢNH BÁO" : "AN TOÀN";
+                    const rowCat = row.cells[1].innerText;
+                    const rowReason = row.cells[2].innerText;
+
+                    const matchStatus = statusFilter.value === 'all' || rowStatus === statusFilter.value;
+                    const matchCat = catFilter.value === 'all' || rowCat === catFilter.value;
+                    
+                    let matchHour = true;
+                    if (hourFilter.value === 'night') matchHour = rowReason.includes("ban đêm");
+                    if (hourFilter.value === 'day') matchHour = !rowReason.includes("ban đêm");
+
+                    if (matchStatus && matchCat && matchHour) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                document.getElementById('rowCountDisplay').textContent = `Hiển thị ${visibleCount} giao dịch`;
+            }
+
+            [statusFilter, catFilter, hourFilter].forEach(f => f.addEventListener('change', filterData));
+        });
+
+        // PLOTLY CONFIG
+        var layoutConfig = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: {t: 50, b: 40, l: 40, r: 20},
+            font: { family: 'DM Sans', color: '#2b3674' }
+        };
+
+        {% if graphJSON_category %}
+            Plotly.newPlot('chart_category', {{ graphJSON_category | safe }}.data, Object.assign({}, {{ graphJSON_category | safe }}.layout, layoutConfig), {responsive: true, displayModeBar: false});
+        {% endif %}
+        {% if graphJSON_pie %}
+            Plotly.newPlot('chart_pie', {{ graphJSON_pie | safe }}.data, Object.assign({}, {{ graphJSON_pie | safe }}.layout, layoutConfig), {responsive: true, displayModeBar: false});
+        {% endif %}
+    </script>
+</body>
+</html>

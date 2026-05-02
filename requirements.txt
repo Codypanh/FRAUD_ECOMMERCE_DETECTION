@@ -1,0 +1,23 @@
+# Web Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Data Processing & Analysis
+pandas==2.2.0
+numpy==1.24.3
+polars==0.20.12
+openpyxl==3.1.2
+
+# Machine Learning & Preprocessing
+scikit-learn==1.4.1
+xgboost==2.0.3
+joblib==1.3.2
+
+# Data Visualization
+plotly==5.18.0
+matplotlib==3.8.2
+seaborn==0.13.0
+
+# Utilities
+python-dotenv==1.0.0
+
