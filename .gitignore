@@ -1,0 +1,15 @@
+# Ignore dataset
+*.csv
+#Ignore pkl
+*.pkl
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+venv/
+.env
